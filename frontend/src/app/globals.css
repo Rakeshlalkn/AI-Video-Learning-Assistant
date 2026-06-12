@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 249 250 251;
+  --foreground: 17 24 39;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  color: rgb(var(--foreground));
+  background: rgb(var(--background));
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+.markdown-body h1 { @apply text-2xl font-bold mt-6 mb-3; }
+.markdown-body h2 { @apply text-xl font-semibold mt-5 mb-2; }
+.markdown-body h3 { @apply text-lg font-semibold mt-4 mb-2; }
+.markdown-body p  { @apply my-2 leading-7; }
+.markdown-body ul { @apply list-disc pl-6 my-2; }
+.markdown-body ol { @apply list-decimal pl-6 my-2; }
+.markdown-body li { @apply my-1; }
+.markdown-body code { @apply bg-gray-100 rounded px-1 py-0.5 text-sm; }
+.markdown-body pre  { @apply bg-gray-900 text-gray-100 rounded p-3 overflow-x-auto; }
+.markdown-body pre code { @apply bg-transparent p-0; }
+.markdown-body blockquote { @apply border-l-4 border-gray-300 pl-3 italic text-gray-600; }
+.markdown-body a { @apply text-brand-600 underline; }
