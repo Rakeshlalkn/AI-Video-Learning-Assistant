@@ -1,0 +1,27 @@
+# Backend .dockerignore
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+*.db
+.env
+.env.*
+!.env.example
+
+# Don't ship the data dirs (they live on a volume)
+../uploads/
+../documents/
+../chromadb/
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

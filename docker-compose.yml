@@ -1,0 +1,101 @@
+# docker-compose.yml — one command to run the whole stack.
+#
+# Usage:
+#   cp .env.example .env       # then edit GEMINI_API_KEY, SECRET_KEY, etc.
+#   docker compose up --build  # builds and starts both services
+#
+# What you get:
+#   * http://localhost:3000  →  Next.js UI
+#   * http://localhost:8000  →  FastAPI backend (also reachable from the
+#                                browser, useful for /docs and /health)
+#
+# Persistence:
+#   A single named volume `app_data` holds SQLite, ChromaDB, uploaded
+#   videos, generated .md notes, and the HuggingFace model cache. Delete
+#   the volume to start fresh.
+#
+# Notes:
+#   * The frontend talks to the backend through Docker's internal DNS at
+#     http://backend:8000. NEXT_PUBLIC_BACKEND_URL is baked into the JS
+#     bundle at build time, which is why the build arg is set here.
+#   * Both services run on the host network's port range so you can hit
+#     them from your browser without a reverse proxy. For production
+#     you'd want a real proxy in front.
+
+name: ai-video-learning-assistant
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: ai-vla/backend:dev
+    container_name: ai-vla-backend
+    restart: unless-stopped
+    environment:
+      # Pulled from your project .env file (so secrets stay out of YAML).
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-your-google-client-id.apps.googleusercontent.com}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-your-google-client-secret}
+      SECRET_KEY: ${SECRET_KEY:-change-me-to-a-long-random-string}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-10080}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-your-gemini-api-key}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8000}
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////data/db/app.db}
+      UPLOAD_DIR: /data/uploads
+      DOCUMENTS_DIR: /data/documents
+      CHROMA_DIR: /data/chromadb
+      # Whisper settings
+      WHISPER_MODEL: ${WHISPER_MODEL:-base}
+      WHISPER_DEVICE: ${WHISPER_DEVICE:-cpu}
+      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
+      # Where faster-whisper / HuggingFace cache their downloaded models
+      HF_HOME: /data/cache/huggingface
+    volumes:
+      - app_data:/data
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    # ffmpeg needs more shared memory for some big-file conversions; bump
+    # the default 64 MB to 1 GB so we don't OOM on long videos.
+    shm_size: "1gb"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # These are baked into the JS at build time. If you change them
+        # you must `docker compose build --no-cache frontend`.
+        NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8000}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
+    image: ai-vla/frontend:dev
+    container_name: ai-vla-frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      # Server-side env only — used by the standalone Node server. The
+      # public URLs are baked at build time and can't be changed here.
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "3000:3000"
+
+volumes:
+  app_data:
+    # Bind-mount on Linux is a nice escape hatch for inspecting data:
+    #   driver_opts:
+    #     type: none
+    #     o: bind
+    #     device: $PWD/data
+    # We default to a named volume so `docker compose down` doesn't wipe
+    # your videos by accident.

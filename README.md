@@ -68,26 +68,41 @@ ai-video-learning-assistant/
 │   │   ├── schemas/        # Pydantic schemas
 │   │   ├── services/       # audio, transcription, vector store, gemini, pipeline
 │   │   └── main.py
+│   ├── Dockerfile          # multi-stage image for the backend
 │   ├── requirements.txt
 │   ├── .env.example
+│   ├── .dockerignore
 │   └── run.sh
 ├── frontend/               # Next.js (App Router) + Tailwind
 │   ├── src/app/            # pages: login, dashboard, upload, library, videos/[id], settings
 │   ├── src/components/     # Sidebar, NotesEditor, StatusBadge, …
 │   ├── src/lib/            # api.ts, auth.tsx, types.ts
+│   ├── Dockerfile          # multi-stage image, uses output: "standalone"
 │   ├── package.json
 │   ├── tailwind.config.js
 │   ├── next.config.js
-│   └── .env.example
-├── uploads/                # uploaded videos (created at runtime)
-├── documents/              # generated .md notes (created at runtime)
-├── chromadb/               # vector DB persistence (created at runtime)
+│   ├── .env.example
+│   └── .dockerignore
+├── docker-compose.yml      # one command to run the whole stack
+├── uploads/                # uploaded videos (only used in local-dev mode)
+├── documents/              # generated .md notes (only used in local-dev mode)
+├── chromadb/               # vector DB persistence (only used in local-dev mode)
+├── HOW_IT_WORKS.md         # deep-dive architecture walkthrough
 └── README.md
 ```
 
 ## Prerequisites
 
-Install these once on your machine:
+### If you're using Docker
+
+| Tool | Why | Install |
+|------|-----|---------|
+| **Docker Engine 24+** with Compose v2 | runs the whole stack | https://docs.docker.com/get-docker/ |
+| **Google account** (optional) | real Google Sign-in | https://console.cloud.google.com |
+
+That's it. ffmpeg, Python, and Node are all baked into the images.
+
+### If you're running locally
 
 | Tool | Why | Install |
 |------|-----|---------|
@@ -101,7 +116,38 @@ Install these once on your machine:
 
 ## Setup
 
-### 1. Backend
+You can run the stack two ways. Docker is the path of least resistance if
+you have Docker installed; the manual path is useful when you want to
+edit Python or Node code without rebuilding images.
+
+### Option A — Docker (recommended)
+
+Prerequisites: Docker Engine 24+ and Docker Compose v2.
+
+```bash
+cp .env.example .env
+# Edit .env and set GEMINI_API_KEY (required) and SECRET_KEY (recommended).
+docker compose up --build
+```
+
+That's it. First build takes a few minutes (Whisper + ChromaDB + Next.js).
+After that, restarts are near-instant.
+
+You'll get:
+- UI at <http://localhost:3000>
+- API at <http://localhost:8000> (also <http://localhost:8000/docs>)
+
+Data (SQLite, ChromaDB, uploads, generated .md files, and the Whisper
+model cache) is held in a Docker volume called `app_data`. To wipe
+everything and start fresh:
+
+```bash
+docker compose down -v
+```
+
+### Option B — Run locally (no Docker)
+
+#### 1. Backend
 
 ```bash
 cd backend
@@ -119,7 +165,7 @@ cp .env.example .env
 The API will be at <http://localhost:8000>. Swagger docs at
 <http://localhost:8000/docs>.
 
-### 2. Frontend
+#### 2. Frontend
 
 ```bash
 cd frontend
@@ -226,15 +272,30 @@ accurate on 3-hour videos as on 5-minute ones.
 ## Troubleshooting
 
 - **"ffmpeg is not installed"** — install ffmpeg and make sure it's on PATH.
-- **"GEMINI_API_KEY is not set"** — set it in `backend/.env` and restart the
-  backend.
+  (Not a problem in Docker; ffmpeg is in the image.)
+- **"GEMINI_API_KEY is not set"** — set it in `backend/.env` (or the project
+  `.env` for Docker) and restart the backend.
 - **Whisper is slow** — try `WHISPER_MODEL=tiny` for quick tests; or set
-  `WHISPER_DEVICE=cuda` if you have an NVIDIA GPU.
+  `WHISPER_DEVICE=cuda` if you have an NVIDIA GPU and the matching
+  PyTorch wheel inside the image.
 - **CORS errors** — the backend already allows `*` in dev. If you serve the
   frontend on a different port, the `axios` client uses
   `NEXT_PUBLIC_BACKEND_URL` directly, so this should just work.
-- **Port already in use** — change the uvicorn port in `run.sh` and the
-  `NEXT_PUBLIC_BACKEND_URL` env var.
+- **Port already in use** — change the port mapping in `docker-compose.yml`
+  (e.g. `"8080:8000"` instead of `"8000:8000"`), or the uvicorn port in
+  `run.sh` plus `NEXT_PUBLIC_BACKEND_URL` for local dev.
+- **Frontend can't reach backend in Docker** — make sure
+  `NEXT_PUBLIC_BACKEND_URL` is set to `http://localhost:8000` *before* you
+  build. Public env vars are baked at build time. After changing them,
+  rebuild with `docker compose build --no-cache frontend`.
+- **HuggingFace model download fails inside Docker** — the cache lives at
+  `/data/cache/huggingface` on the `app_data` volume. If your host has
+  network restrictions on the Hub, pre-populate the cache by running the
+  backend once locally, then `docker compose cp` the cache into the
+  volume, or pre-bake it into a derived image.
+- **First run is slow** — that's normal. The Whisper model (~150 MB for
+  `base`, ~1.5 GB for `small`) and ChromaDB's embedding model (~80 MB)
+  download the first time, then live in the `app_data` volume forever.
 
 ## What you can build next
 

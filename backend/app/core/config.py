@@ -1,13 +1,49 @@
-"""Application configuration loaded from environment variables."""
+"""Application configuration loaded from environment variables.
+
+We deliberately read every path from env vars (with sensible defaults that
+work in both `python -m uvicorn` and `docker compose up`):
+
+* Locally: paths default to the on-disk layout the project has always used.
+* In Docker: docker-compose.yml passes `UPLOAD_DIR=/data/uploads` etc., and
+  Pydantic picks them up.
+"""
+from __future__ import annotations
+
+import os
 from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+# /app/backend/app/core/config.py → /app/backend
+APP_DIR = Path(__file__).resolve().parent.parent.parent
+# /app/backend → /app
+PROJECT_ROOT = APP_DIR.parent
+# The repo root (one above backend/) — the original layout used this for
+# uploads/, documents/, chromadb/ sitting alongside frontend/.
+REPO_ROOT = APP_DIR.parent
+
+
+def _default_data_dir(name: str) -> str:
+    """Pick a sensible default for a data directory.
+
+    Priority:
+      1. Explicit env var (set by docker-compose for /data/*).
+      2. `<repo>/<name>` (the original on-disk layout when running locally).
+      3. `/data/<name>` (the Docker-friendly fallback).
+    """
+    env_name = name.upper()
+    if env_name in os.environ:
+        return os.environ[env_name]
+    repo_path = REPO_ROOT / name
+    if repo_path.exists() or env_name not in os.environ:
+        # Local dev: keep using repo/<name> as before.
+        return str(repo_path)
+    return f"/data/{name}"
 
 
 class Settings(BaseSettings):
-    """Application settings loaded from .env file."""
+    """Application settings loaded from .env file + process env."""
 
     # Google OAuth
     google_client_id: str = "your-google-client-id.apps.googleusercontent.com"
@@ -25,10 +61,10 @@ class Settings(BaseSettings):
     # App
     frontend_url: str = "http://localhost:3000"
     backend_url: str = "http://localhost:8000"
-    database_url: str = f"sqlite:///{BASE_DIR / 'app.db'}"
-    upload_dir: str = str(BASE_DIR.parent / "uploads")
-    documents_dir: str = str(BASE_DIR.parent / "documents")
-    chroma_dir: str = str(BASE_DIR.parent / "chromadb")
+    database_url: str = f"sqlite:///{APP_DIR / 'app.db'}"
+    upload_dir: str = _default_data_dir("uploads")
+    documents_dir: str = _default_data_dir("documents")
+    chroma_dir: str = _default_data_dir("chromadb")
 
     # Whisper
     whisper_model: str = "base"
@@ -36,7 +72,7 @@ class Settings(BaseSettings):
     whisper_compute_type: str = "int8"
 
     model_config = SettingsConfigDict(
-        env_file=str(BASE_DIR / ".env"),
+        env_file=str(APP_DIR / ".env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -49,3 +85,7 @@ settings = Settings()
 Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
 Path(settings.documents_dir).mkdir(parents=True, exist_ok=True)
 Path(settings.chroma_dir).mkdir(parents=True, exist_ok=True)
+# SQLite parent dir needs to exist when DATABASE_URL is file-based.
+if settings.database_url.startswith("sqlite:///"):
+    db_path = Path(settings.database_url.replace("sqlite:///", "", 1))
+    db_path.parent.mkdir(parents=True, exist_ok=True)
