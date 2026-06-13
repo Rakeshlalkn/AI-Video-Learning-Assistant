@@ -71,6 +71,14 @@ class Settings(BaseSettings):
     whisper_device: str = "cpu"
     whisper_compute_type: str = "int8"
 
+    youtube_user_agent: str = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/125.0.0.0 Safari/537.36"
+    )
+    youtube_cookies_file: str | None = None
+    youtube_retries: int = 3
+
     model_config = SettingsConfigDict(
         env_file=str(APP_DIR / ".env"),
         env_file_encoding="utf-8",

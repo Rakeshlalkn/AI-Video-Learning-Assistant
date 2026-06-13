@@ -4,6 +4,8 @@ Each user gets their own collection so data is naturally partitioned.
 Embeddings are produced by ChromaDB's default embedding function
 (all-MiniLM-L6-v2 sentence-transformer) — no extra API key needed.
 """
+from __future__ import annotations
+
 import re
 from typing import Iterable
 

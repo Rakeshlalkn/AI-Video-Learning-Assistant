@@ -1,27 +1,3 @@
-# docker-compose.yml — one command to run the whole stack.
-#
-# Usage:
-#   cp .env.example .env       # then edit GEMINI_API_KEY, SECRET_KEY, etc.
-#   docker compose up --build  # builds and starts both services
-#
-# What you get:
-#   * http://localhost:3000  →  Next.js UI
-#   * http://localhost:8000  →  FastAPI backend (also reachable from the
-#                                browser, useful for /docs and /health)
-#
-# Persistence:
-#   A single named volume `app_data` holds SQLite, ChromaDB, uploaded
-#   videos, generated .md notes, and the HuggingFace model cache. Delete
-#   the volume to start fresh.
-#
-# Notes:
-#   * The frontend talks to the backend through Docker's internal DNS at
-#     http://backend:8000. NEXT_PUBLIC_BACKEND_URL is baked into the JS
-#     bundle at build time, which is why the build arg is set here.
-#   * Both services run on the host network's port range so you can hit
-#     them from your browser without a reverse proxy. For production
-#     you'd want a real proxy in front.
-
 name: ai-video-learning-assistant
 
 services:
@@ -74,7 +50,7 @@ services:
       args:
         # These are baked into the JS at build time. If you change them
         # you must `docker compose build --no-cache frontend`.
-        NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-http://localhost:8000}
+        NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:-}
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
     image: ai-vla/frontend:dev
     container_name: ai-vla-frontend

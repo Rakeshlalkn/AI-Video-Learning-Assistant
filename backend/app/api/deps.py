@@ -8,7 +8,7 @@ from app.db.database import get_db
 from app.models.user import User
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/google", auto_error=True)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=True)
 
 
 def get_current_user(

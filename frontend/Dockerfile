@@ -33,7 +33,7 @@ FROM node:${NODE_VERSION} AS builder
 WORKDIR /app
 
 # Public build-time env vars.
-ARG NEXT_PUBLIC_BACKEND_URL=http://backend:8000
+ARG NEXT_PUBLIC_BACKEND_URL=""
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID=""
 ENV NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL} \
     NEXT_PUBLIC_GOOGLE_CLIENT_ID=${NEXT_PUBLIC_GOOGLE_CLIENT_ID} \
@@ -41,7 +41,7 @@ ENV NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL} \
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
+RUN mkdir -p public
 RUN npm run build
 
 # ---------------------------------------------------------------------------
@@ -64,7 +64,7 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static       ./.next/static
 # Public/ is optional — copy only if it exists.
-COPY --from=builder --chown=nextjs:nodejs /app/public              ./public 2>/dev/null || true
+COPY --from=builder --chown=nextjs:nodejs /app/public              ./public
 
 USER nextjs
 

@@ -65,9 +65,9 @@ WORKDIR /app
 COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Application code is placed at /app/backend so PYTHONPATH=/app works.
+# Application code is placed at /app/backend so PYTHONPATH=/app/backend works.
 COPY . /app/backend
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app/backend
 
 # Persistent storage lives on mounted volumes, not inside the image.
 # The dirs are created here so volume mounts land on existing paths.

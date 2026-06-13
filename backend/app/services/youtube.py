@@ -4,6 +4,8 @@ from pathlib import Path
 
 import yt_dlp
 
+from app.core.config import settings
+
 
 YOUTUBE_URL_RE = re.compile(
     r"(https?://)?(www\.)?(youtube\.com/watch\?v=|youtu\.be/|youtube\.com/shorts/)[\w\-]+"
@@ -28,8 +30,16 @@ def download_youtube(url: str, output_dir: str) -> tuple[str, str]:
         "outtmpl": outtmpl,
         "merge_output_format": "mp4",
         "quiet": True,
+        "no_warnings": True,
         "noplaylist": True,
+        "retries": settings.youtube_retries,
+        "source_address": "0.0.0.0",
+        "nocheckcertificate": True,
+        "user_agent": settings.youtube_user_agent,
+        "referer": "https://www.youtube.com/",
     }
+    if settings.youtube_cookies_file:
+        ydl_opts["cookiefile"] = settings.youtube_cookies_file
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)

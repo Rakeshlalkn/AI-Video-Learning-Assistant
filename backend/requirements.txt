@@ -16,3 +16,4 @@ yt-dlp==2024.10.7
 ffmpeg-python==0.2.0
 aiofiles==24.1.0
 python-dotenv==1.0.1
+email-validator>=2.0

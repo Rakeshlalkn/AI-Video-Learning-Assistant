@@ -25,6 +25,8 @@ type AuthContextValue = {
   token: string | null;
   ready: boolean;
   loginWithGoogleIdToken: (idToken: string) => Promise<void>;
+  loginWithCredentials: (email: string, password: string) => Promise<void>;
+  registerWithCredentials: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
 };
 
@@ -63,6 +65,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
   }, []);
 
+  const loginWithCredentials = useCallback(async (email: string, password: string) => {
+    const { data } = await api.post<{ access_token: string; user: User }>(
+      "/auth/login",
+      { email, password },
+    );
+    window.localStorage.setItem(TOKEN_KEY, data.access_token);
+    window.localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+    setToken(data.access_token);
+    setUser(data.user);
+  }, []);
+
+  const registerWithCredentials = useCallback(
+    async (name: string, email: string, password: string) => {
+      const { data } = await api.post<{ access_token: string; user: User }>(
+        "/auth/register",
+        { name, email, password },
+      );
+      window.localStorage.setItem(TOKEN_KEY, data.access_token);
+      window.localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      setToken(data.access_token);
+      setUser(data.user);
+    },
+    [],
+  );
+
   const logout = useCallback(() => {
     window.localStorage.removeItem(TOKEN_KEY);
     window.localStorage.removeItem(USER_KEY);
@@ -71,8 +98,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, token, ready, loginWithGoogleIdToken, logout }),
-    [user, token, ready, loginWithGoogleIdToken, logout],
+    () => ({
+      user,
+      token,
+      ready,
+      loginWithGoogleIdToken,
+      loginWithCredentials,
+      registerWithCredentials,
+      logout,
+    }),
+    [user, token, ready, loginWithGoogleIdToken, loginWithCredentials, registerWithCredentials, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
