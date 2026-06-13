@@ -17,6 +17,8 @@ export type Video = {
   source_url?: string | null;
   transcript?: string | null;
   status: VideoStatus;
+  progress?: string | null;
+  progress_pct?: number;
   error_message?: string | null;
   created_at: string;
 };
@@ -26,6 +28,8 @@ export type VideoSummary = {
   title: string;
   status: VideoStatus;
   source_type: "upload" | "youtube";
+  progress?: string | null;
+  progress_pct?: number;
   created_at: string;
 };
 

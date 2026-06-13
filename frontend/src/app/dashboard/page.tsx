@@ -5,7 +5,7 @@ import Link from "next/link";
 import { FileVideo, FileText, CheckCircle2, Upload as UploadIcon } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
-import { StatusBadge } from "@/components/StatusBadge";
+import { ProgressBar, StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 import type { DashboardResponse } from "@/lib/types";
 
@@ -122,7 +122,17 @@ function DashboardInner() {
               <tbody>
                 {data?.recent.map((v) => (
                   <tr key={v.id} className="border-t border-gray-100">
-                    <td className="px-4 py-3 font-medium">{v.title}</td>
+                    <td className="px-4 py-3 font-medium">
+                      {v.title}
+                      {(v.status === "pending" || v.status === "processing") && (
+                        <div className="mt-1.5 max-w-xs">
+                          <ProgressBar
+                            pct={v.progress_pct ?? 0}
+                            label={v.progress ?? "Queued…"}
+                          />
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-gray-600">{v.source_type}</td>
                     <td className="px-4 py-3"><StatusBadge status={v.status} /></td>
                     <td className="px-4 py-3 text-gray-600">

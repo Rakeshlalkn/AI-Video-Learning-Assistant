@@ -118,14 +118,15 @@ function ChatInner() {
           {messages.length === 0 && (
             <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center">
               <Sparkles className="mx-auto mb-3 h-8 w-8 text-brand-500" />
-              <h2 className="text-lg font-semibold">Ask anything about this video</h2>
+              <h2 className="text-lg font-semibold">What do you want to know?</h2>
               <p className="mt-1 text-sm text-gray-500">
-                Answers are grounded in the video's transcript.
+                I only answer from the video, so if the speaker didn't cover
+                it, I'll say so. That keeps me honest.
               </p>
               {!ready && video && (
                 <p className="mt-3 text-sm text-amber-700">
-                  Video is not ready yet (status: {video.status}). Chat will be available once
-                  processing finishes.
+                  Hang on — the video is still being processed
+                  ({video.status}). I'll be ready as soon as it is.
                 </p>
               )}
               {ready && (
@@ -171,7 +172,7 @@ function ChatInner() {
             <div className="flex justify-start">
               <div className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Thinking…
+                Looking through the transcript…
               </div>
             </div>
           )}

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Trash2, MessageSquare, FileText, RefreshCw } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
-import { StatusBadge } from "@/components/StatusBadge";
+import { ProgressBar, StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 import type { Video, VideoSummary } from "@/lib/types";
 
@@ -44,7 +44,7 @@ function LibraryInner() {
   // Poll while anything is processing
   useEffect(() => {
     if (!videos.some((v) => v.status === "pending" || v.status === "processing")) return;
-    const id = setInterval(load, 5000);
+    const id = setInterval(load, 3000);
     return () => clearInterval(id);
   }, [videos, load]);
 
@@ -113,6 +113,14 @@ function LibraryInner() {
                     <Link href={`/videos/${v.id}`} className="hover:underline">
                       {v.title}
                     </Link>
+                    {(v.status === "pending" || v.status === "processing") && (
+                      <div className="mt-1.5 max-w-xs">
+                        <ProgressBar
+                          pct={v.progress_pct ?? 0}
+                          label={v.progress ?? "Queued…"}
+                        />
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-gray-600">{v.source_type}</td>
                   <td className="px-4 py-3"><StatusBadge status={v.status} /></td>

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { RequireAuth } from "@/components/RequireAuth";
-import { StatusBadge } from "@/components/StatusBadge";
+import { ProgressBar, StatusBadge } from "@/components/StatusBadge";
 import { api } from "@/lib/api";
 import type { DocumentRecord, Video } from "@/lib/types";
 import { NotesEditor } from "@/components/NotesEditor";
@@ -60,7 +60,7 @@ function VideoDetailInner() {
   useEffect(() => {
     if (!video) return;
     if (video.status !== "pending" && video.status !== "processing") return;
-    const t = setInterval(load, 5000);
+    const t = setInterval(load, 3000);
     return () => clearInterval(t);
   }, [video, load]);
 
@@ -107,7 +107,7 @@ function VideoDetailInner() {
       </div>
 
       <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="text-2xl font-semibold">{video.title}</h1>
           <div className="mt-1 flex items-center gap-3 text-sm text-gray-500">
             <StatusBadge status={video.status} />
@@ -116,6 +116,14 @@ function VideoDetailInner() {
             <span>·</span>
             <span>{new Date(video.created_at).toLocaleString()}</span>
           </div>
+          {(video.status === "pending" || video.status === "processing") && (
+            <div className="mt-3 max-w-md">
+              <ProgressBar
+                pct={video.progress_pct ?? 0}
+                label={video.progress ?? "Queued…"}
+              />
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Link

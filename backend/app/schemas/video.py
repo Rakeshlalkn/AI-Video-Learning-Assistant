@@ -27,6 +27,8 @@ class VideoOut(BaseModel):
     source_url: str | None = None
     transcript: str | None = None
     status: str
+    progress: str | None = None
+    progress_pct: int = 0
     error_message: str | None = None
     created_at: datetime
 
@@ -39,6 +41,8 @@ class VideoSummary(BaseModel):
     title: str
     status: str
     source_type: str
+    progress: str | None = None
+    progress_pct: int = 0
     created_at: datetime
 
     class Config:

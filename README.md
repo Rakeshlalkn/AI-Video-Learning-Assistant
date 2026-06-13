@@ -36,15 +36,24 @@ folders for video and Markdown files.
 - **Automatic pipeline**
   1. Extract audio with `ffmpeg`
   2. Transcribe with Faster-Whisper (local, runs on CPU)
-  3. Chunk + embed transcript → ChromaDB
+  3. Chunk + embed transcript → ChromaDB (RAG index for chat)
   4. Generate structured lesson notes with Gemini 2.5 Flash
+     — **map-reduce over ~1,100-token chunks** so 2-3 hour videos
+     fit comfortably inside Gemini's context window.
   5. Save a Markdown document alongside the video
+  6. Live progress bar in the UI (e.g. "Summarizing chunk 7/24…")
 - **AI chat tutor** — answers questions, generates quizzes, creates
   flashcards, all grounded in the transcript via RAG.
 - **Notes editor** — view, edit, and download notes as Markdown.
 - **Dashboard** — totals and recent uploads.
 - **Per-user isolation** — every query is scoped to the signed-in user; you
   cannot see or touch another user's videos.
+
+> 📘 Want to understand *why* each piece works the way it does?
+> Read [HOW_IT_WORKS.md](HOW_IT_WORKS.md) — it's a full architecture
+> walk-through covering auth, the data model, every pipeline step, the
+> map-reduce strategy for long videos, configuration, failure modes,
+> performance numbers, and how to extend the system.
 
 ## Folder structure
 
@@ -189,6 +198,30 @@ UPLOAD_DIR=../uploads
 DOCUMENTS_DIR=../documents
 CHROMA_DIR=../chromadb
 ```
+
+## How long-video generation works
+
+When a transcript is longer than ~1,100 tokens, the lesson-notes step uses a
+**map-reduce** strategy instead of a single prompt:
+
+1. The transcript is split into ~1,100-token chunks (with a 150-token overlap
+   so no sentence is cut in half between chunks).  A 2-3 hour lecture
+   typically yields 20-30 chunks.
+2. **MAP** — Gemini is called once per chunk and asked for a structured
+   mini-summary (topics, key facts, examples, important timestamps).
+3. **REDUCE** — All chunk summaries + a 20k-char excerpt of the original
+   transcript are sent to Gemini in one final call, which produces the
+   full structured lesson notes.
+
+Each map step is short enough to run independently and quickly. The reduce
+step sees the *whole video's* structure without exceeding the context
+window. If a transcript is absurdly long (>60 chunks), chunks are sampled
+evenly down to 60 to keep total work bounded.
+
+Chat already uses the same chunked index, so RAG retrieval is just as
+accurate on 3-hour videos as on 5-minute ones.
+
+
 
 ## Troubleshooting
 
